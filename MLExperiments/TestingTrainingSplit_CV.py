@@ -49,18 +49,18 @@ def predictor_reshaper(trends):
     PredictorVector = np.reshape(trends, (np.shape(trends)[0], np.shape(trends)[1]*np.shape(trends)[2]))
     return(PredictorVector)
 
-def tropical_mean_trend(trends, land_sea_mask, weights):
+def tropical_mean_trend(trends, land_sea_mask, weights, latbounds):
     """ 
     Takes map of trends and finds average over the 30S-30N region.
     """
     ocean_trends = np.array([np.ma.masked_array(data=trends[i], mask=land_sea_mask, fill_value=np.nan).filled() for i in range(len(trends))])
     land_trends = np.array([np.ma.masked_array(data=trends[i], mask=abs(land_sea_mask-1), fill_value=np.nan).filled() for i in range(len(trends))])
-
-    ReshapedTrends = np.reshape(trends[:,24:48,:], (np.shape(trends)[0],24*144))
+    length_lat_bounds = latbounds[1] - latbounds[0]
+    ReshapedTrends = np.reshape(trends[:,latbounds[0]:latbounds[1],:], (np.shape(trends)[0],length_lat_bounds*144))
     #ReshapedTrends = np.reshape(trends, (np.shape(trends)[0],72*144))
-    TropicalAverageTrend = np.nansum(ReshapedTrends, axis=1)/(np.nansum(weights)*144)
-    TropicalOceanTrend = np.nanmean(np.reshape(ocean_trends[:,24:48,:], (np.shape(ocean_trends)[0],24*144)), axis=1)
-    TropicalLandTrend = np.nanmean(np.reshape(land_trends[:,24:48,:], (np.shape(land_trends)[0],24*144)), axis=1)
+    TropicalAverageTrend = np.nansum(ReshapedTrends, axis=1)/(np.nansum(weights[latbounds[0]:latbounds[1]])*144)
+    TropicalOceanTrend = np.nanmean(np.reshape(ocean_trends[:,latbounds[0]:latbounds[1],:], (np.shape(ocean_trends)[0],length_lat_bounds*144)), axis=1)
+    TropicalLandTrend = np.nanmean(np.reshape(land_trends[:,latbounds[0]:latbounds[1],:], (np.shape(land_trends)[0],length_lat_bounds*144)), axis=1)
     #TropicalOceanTrend = np.nanmean(np.reshape(ocean_trends, (np.shape(ocean_trends)[0],72*144)), axis=1)
     #TropicalLandTrend = np.nanmean(np.reshape(land_trends, (np.shape(land_trends)[0],72*144)), axis=1)
     
@@ -76,6 +76,9 @@ def training_testing_split():
     # set path to data
     path_to_data = '/home/disk/pna2/aodhan/SurfaceTrendLearning/*_TrendMaps.nc'
     ModelDataFiles = glob.glob(path_to_data)
+
+    # select lat bounds used for subsection of globe
+    latbounds = [30,42]
 
     # create land sea mask
     sample_grid = xr.open_dataset(ModelDataFiles[0]) 
@@ -125,8 +128,8 @@ def training_testing_split():
             TrainingTrends_vectors = predictor_reshaper(TrueTrendsTrain)
 
             # find tropical mean trend value
-            NatTrendsTrainTropicalMean = np.transpose(tropical_mean_trend(NatTrendsTrain_weighted, land_sea_mask, weights))
-            ForTrendsTrainTropicalMean = np.transpose(tropical_mean_trend(ForTrendsTrain_weighted, land_sea_mask, weights))
+            NatTrendsTrainTropicalMean = np.transpose(tropical_mean_trend(NatTrendsTrain_weighted, land_sea_mask, weights, latbounds))
+            ForTrendsTrainTropicalMean = np.transpose(tropical_mean_trend(ForTrendsTrain_weighted, land_sea_mask, weights, latbounds))
 
             # append to training data 
             [OneCVTrainingPredictorData.append(TrainingTrends_vectors[i]) for i in range(len(TrainingTrends_vectors))]
@@ -156,16 +159,15 @@ def training_testing_split():
         # true trend maps are sum of natural and forced trends
         TrueTrendsTest = NatTrendsTest_weighted + ForTrendsTest_weighted
         
-
         # reshape predictors as vector
         OneCVTestingPredictorData = predictor_reshaper(TrueTrendsTest)
-        OneCVTestingPredictorData_reshaped = np.reshape(OneCVTestingPredictorData, (np.shape(OneCVTestingPredictorData)[0],72,144))[:,24:48,:]
-        OneCVTestingPredictorData_reshaped = np.reshape(OneCVTestingPredictorData_reshaped, (np.shape(OneCVTestingPredictorData_reshaped)[0], 24*144))
-        OneCVTestingPredictorDataAverageTrend = np.nansum(OneCVTestingPredictorData_reshaped, axis=1)/(np.nansum(weights)*144)
+        OneCVTestingPredictorData_reshaped = np.reshape(OneCVTestingPredictorData, (np.shape(OneCVTestingPredictorData)[0],72,144))[:,latbounds[0]:latbounds[1],:]
+        OneCVTestingPredictorData_reshaped = np.reshape(OneCVTestingPredictorData_reshaped, (np.shape(OneCVTestingPredictorData_reshaped)[0], (latbounds[1]-latbounds[0])*144))
+        OneCVTestingPredictorDataAverageTrend = np.nansum(OneCVTestingPredictorData_reshaped, axis=1)/(np.nansum(weights[latbounds[0]:latbounds[1]])*144)
 
         # find tropical mean trend value
-        NatTrendsTestTropicalMean = np.transpose(tropical_mean_trend(NatTrendsTest_weighted, land_sea_mask, weights))
-        ForTrendsTestTropicalMean = np.transpose(tropical_mean_trend(ForTrendsTest_weighted, land_sea_mask, weights))
+        NatTrendsTestTropicalMean = np.transpose(tropical_mean_trend(NatTrendsTest_weighted, land_sea_mask, weights, latbounds))
+        ForTrendsTestTropicalMean = np.transpose(tropical_mean_trend(ForTrendsTest_weighted, land_sea_mask, weights, latbounds))
 
         # reshape the target variables 
         OneCVTestingTargetData= np.swapaxes([NatTrendsTestTropicalMean, ForTrendsTestTropicalMean], 0,1)
