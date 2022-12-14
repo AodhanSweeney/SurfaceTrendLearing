@@ -3,4 +3,4 @@ Observations of tropical land (10S-10N) show surface temperature trends from 199
 
 # Observed trends before (red) and after (blue) removing natural variability compared to CMIP6 multi-model mean.
 
-![alt text]([http://url/to/img.png](https://github.com/AodhanSweeney/SurfaceTrendLearing/blob/main/FileCreators/Obs_vs_CMIP6.png))
+![alt text](https://github.com/AodhanSweeney/SurfaceTrendLearing/blob/main/FileCreators/Obs_vs_CMIP6.png)
