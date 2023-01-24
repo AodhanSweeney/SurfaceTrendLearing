@@ -78,8 +78,7 @@ def training_testing_split():
     ModelDataFiles = glob.glob(path_to_data)
 
     # select lat bounds used for subsection of globe
-    latbounds = [30,42]
-
+    latbounds = [28,44]
     # create land sea mask
     sample_grid = xr.open_dataset(ModelDataFiles[0]) 
     latitudes = sample_grid.Lat.to_numpy()
@@ -91,6 +90,7 @@ def training_testing_split():
             land_sea_mask_at_latitude.append(is_land(x, y))
         land_sea_mask.append(land_sea_mask_at_latitude)
     land_sea_mask = np.transpose(land_sea_mask)
+    land_sea_mask = np.concatenate([land_sea_mask[:,72:], land_sea_mask[:,:72]], axis=1)
     
     TrainingPredictorData = []
     TrainingTargetData = []

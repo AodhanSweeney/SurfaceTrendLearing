@@ -8,13 +8,13 @@ c.retrieve(
         'product_type': 'monthly_averaged_reanalysis',
         'variable': 'skin_temperature',
         'year': [
-            '1996', '1997', '1998',
-            '1999', '2000', '2001',
             '2002', '2003', '2004',
             '2005', '2006', '2007',
             '2008', '2009', '2010',
             '2011', '2012', '2013',
-            '2014',
+            '2014', '2015', '2016',
+            '2017', '2018', '2019',
+            '2020', '2021', 
         ],
         'month': [
             '01', '02', '03',
@@ -25,5 +25,4 @@ c.retrieve(
         'time': '00:00',
         'format': 'netcdf',
     },
-    'download.nc')
-#    '/home/disk/pna2/aodhan/SurfaceTrendLearning/ERA5SkinTemp.nc')
+    '/home/disk/pna2/aodhan/SurfaceTrendLearning/ERA5SkinTemp_2002_2021.nc')
