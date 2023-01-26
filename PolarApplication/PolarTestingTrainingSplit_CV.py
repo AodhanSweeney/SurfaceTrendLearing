@@ -30,6 +30,8 @@ def train_test_splitting(xarray_file):
     trend_data = xarray_file.to_array()[0]
     NatTrendsTrain = trend_data[ensemble_train_indices,0].to_numpy()
     ForTrendsTrain = trend_data[ensemble_train_indices,1].to_numpy()
+    #NatTrendsTrain = trend_data[:,0].to_numpy()
+    #ForTrendsTrain = trend_data[:,1].to_numpy()
 
     return(NatTrendsTrain, ForTrendsTrain)
 
@@ -108,7 +110,6 @@ def training_testing_split(path_to_data):
         for datafile in TrainingModelDataFiles:
             xarray_file = xr.open_dataset(datafile)
             
-
             # find training data for natural and forced trends
             NatTrendsTrain, ForTrendsTrain = train_test_splitting(xarray_file)
 
@@ -179,4 +180,3 @@ def training_testing_split(path_to_data):
         TestingTotalTrend.append(OneCVTestingPredictorDataAverageTrend)
 
     return(TrainingPredictorData, TrainingTargetData, TestingPredictorData, TestingTargetData, TestingTotalTrend)
-#TrainingPredictorData, TrainingTargetData, TestingPredictorData, TestingTargetData, TestingTotalTrend = training_testing_split()
