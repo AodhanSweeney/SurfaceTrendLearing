@@ -22,6 +22,10 @@ c.retrieve(
             '2006', '2007', '2008',
             '2009', '2010', '2011',
             '2012', '2013', '2014',
+            '2015', '2016', '2017',
+            '2018', '2019', '2020',
+            '2021',
+
         ],
         'month': [
             '01', '02', '03',
@@ -32,4 +36,4 @@ c.retrieve(
         'time': '00:00',
         'grid': ['2.5', '2.5']
     },
-    '/home/disk/pna2/aodhan/insitu_surface_products/ERA5_TAS_monthly_1979_2014.nc')
+    '/home/disk/pna2/aodhan/insitu_surface_products/ERA5_TAS_monthly_1979_2021.nc')

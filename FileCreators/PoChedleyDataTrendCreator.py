@@ -9,7 +9,8 @@ import xesmf as xe
 
 # Path to data folder
 #path_to_data = '/home/disk/pna2/aodhan/SurfaceTrendLearning/PoChedleyEtAl2022/TSmaps/'
-path_to_data = '/home/disk/pna2/aodhan/SurfaceTrendLearning/PoChedleyEtAl2022/TASmaps/'
+#path_to_data = '/home/disk/pna2/aodhan/SurfaceTrendLearning/PoChedleyEtAl2022/TASmaps/'
+path_to_data = '/home/disk/pna2/aodhan/SurfaceTrendLearning/PoChedleyEtAl2022/TASsplicedmaps/'
 
 def trend_maps_maker(path_to_raw_trends):
     # Load dictionary which containes all trends
@@ -46,8 +47,9 @@ def trend_maps_maker(path_to_raw_trends):
             ForcedNaturalTraining = [[NaturalTrendsArray[i], ForcedTrend] for i in range(0, len(NaturalTrendsArray))]
 
             # Training data will be dumped into NetCDF files
-            fileName = path_to_data + model.replace("-", "_") + '_TAS_TrendMaps.nc'
+            #fileName = path_to_data + model.replace("-", "_") + '_TAS_TrendMaps.nc'
             #fileName = path_to_data + model.replace("-", "_") + '_TS_TrendMaps.nc'
+            fileName = path_to_data + model.replace("-", "_") + '_TASspliced_TrendMaps.nc'
 
             # Create file with dimensions
             ds = nc.Dataset(fileName, 'w', format='NETCDF4')
