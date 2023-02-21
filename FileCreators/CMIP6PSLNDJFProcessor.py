@@ -34,7 +34,7 @@ model_paths = glob.glob(path_to_CMIP6_data)
 start_times = np.arange(1854,1980,5)
 
 # for each model...
-for model in model_paths:
+for model in model_paths[-2:-1]: # the -1 is because the last "model" is the directory /trendmap where data is stored
     realizations = glob.glob(model + '/*')
 
     # create data dictionary
@@ -42,47 +42,60 @@ for model in model_paths:
     
     # for each realization...
     simulation_index = []
+    simulation_count = 1
     for ensemble_member in realizations:
-        simulation = xr.open_dataset(ensemble_member)
-        model_name = simulation.source_id
-        simulation_name = simulation.variant_label
-        simulation_number = int(simulation_name.split('i')[0][1:])
-        simulation_index.append(simulation_number)
-        print(model_name, simulation_name, simulation_number)
 
-         # CMIP6 models must be regridded, below we define input and output grids
-        latitudes = simulation.lat.values
-        longitudes = simulation.lon.values
-        InputGrid = {"lon": longitudes, "lat": latitudes}
-        OutputGrid = {"lon": np.arange(1.25, 358.751, 2.5), "lat": np.arange(-88.75, 88.751, 2.5)}
-        regridder = xe.Regridder(InputGrid, OutputGrid, "bilinear")
-        
-        # create lists for where to append data
-        all_timeperiod_trends = []
-        time_keys = []
+        # if we run into problems with given simulation, skip it
+        try:
+            simulation = xr.open_dataset(ensemble_member)
+            model_name = simulation.source_id
+            simulation_name = simulation.variant_label
+            simulation_index.append(simulation_count)
 
-        # find time slices for just winter
-        for i in start_times:
-            start_date = str(i) + '-01'
-            end_date = str(i+35) + '-12'
+            # CMIP6 models must be regridded, below we define input and output grids
+            latitudes = simulation.lat.values
+            longitudes = simulation.lon.values
+            InputGrid = {"lon": longitudes, "lat": latitudes}
+            OutputGrid = {"lon": np.arange(1.25, 358.751, 2.5), "lat": np.arange(-88.75, 88.751, 2.5)}
+            regridder = xe.Regridder(InputGrid, OutputGrid, "bilinear")
+            
+            # create lists for where to append data
+            all_timeperiod_trends = []
+            time_keys = []
+            
+            # find time slices for just winter
+            for i in start_times:
+                start_date = str(i) + '-01'
+                end_date = str(i+35) + '-12'
 
-            # find correct time period of data
-            time_slice_data = simulation.sel(time=slice(start_date, end_date))
-            data_array = time_slice_data.psl.values
+                # find correct time period of data
+                time_slice_data = simulation.sel(time=slice(start_date, end_date))
+                data_array = time_slice_data.psl.values
 
-            # find trends for each of the time periods
-            shape_of_data_array = np.shape(data_array)
-            data_calendar = np.reshape(data_array, (36, 12, shape_of_data_array[1], shape_of_data_array[2]))
-            season_calendar = [data_calendar[:,10],data_calendar[:,11], data_calendar[:,0], 
-                               data_calendar[:,1], data_calendar[:,2]]
-            timeseries_map = np.nanmean(season_calendar, axis=0)
-            trend_map = trend_finder(timeseries_map)
-            trend_map_2p5x2p5 = regridder(trend_map)
-            all_timeperiod_trends.append(trend_map_2p5x2p5)
-            time_keys.append(i)
-        
-        # append all timeperiod trends 
-        model_trends.append(all_timeperiod_trends)
+                # find trends for each of the time periods
+                shape_of_data_array = np.shape(data_array)
+                data_calendar = np.reshape(data_array, (36, 12, shape_of_data_array[1], shape_of_data_array[2]))
+                season_calendar = [data_calendar[:,10],data_calendar[:,11], data_calendar[:,0], 
+                                data_calendar[:,1], data_calendar[:,2]]
+                timeseries_map = np.nanmean(season_calendar, axis=0)
+                trend_map = trend_finder(timeseries_map)
+                trend_map_2p5x2p5 = regridder(trend_map)
+                all_timeperiod_trends.append(trend_map_2p5x2p5)
+                time_keys.append(i)
+
+            # Increase simulation count index
+            simulation_count += 1
+            print(model_name, simulation_name)
+
+            # append all timeperiod trends 
+            model_trends.append(all_timeperiod_trends)
+        except:
+            print('Skipping: ', model_name, simulation_name)
+            continue
+    EnsembleTrendsArray = np.array(model_trends)
+    ForcedTrend = np.nanmean(EnsembleTrendsArray, axis=0)
+    NaturalTrendsArray = EnsembleTrendsArray - ForcedTrend
+    ForcedNaturalArray = [[NaturalTrendsArray[i], ForcedTrend] for i in range(0, len(NaturalTrendsArray))]
 
     # Timeperiod data will be dumped into NetCDF files
     fileName = path_to_CMIP6_data[:-2] + '/trendmap/' + model_name.replace("-", "_") + '_PSL_NDJFM_TrendMaps.nc'
@@ -90,22 +103,25 @@ for model in model_paths:
     # Create netcdf file with dimensions
     ds = nc.Dataset(fileName, 'w', format='NETCDF4')
     ensemble_member = ds.createDimension('ensemble_member', len(simulation_index))
+    ForcedNatural = ds.createDimension('ForcedNatural', 2)
     TrendTimePeriod = ds.createDimension('TrendTimePeriod', len(time_keys)) # 26 timeperiods
     Lat = ds.createDimension('Lat', 72)
     Lon = ds.createDimension('Lon', 144)
 
     # Add variables to dimensions
     ensemble_member = ds.createVariable('ensemble_member', int, ('ensemble_member',))
+    ForcedNatural = ds.createVariable('ForcedNatural', int, ('ForcedNatural',))
     TrendTimePeriod = ds.createVariable('TrendTimePeriod', int, ('TrendTimePeriod',))
     Lat = ds.createVariable('Lat', 'f4', ('Lat',))
     Lon = ds.createVariable('Lon', 'f4', ('Lon',))
-    Ts_trends = ds.createVariable('ts_trend', 'f4', ('ensemble_member', 'TrendTimePeriod', 'Lat', 'Lon'))
+    Ts_trends = ds.createVariable('ts_trend', 'f4', ('ensemble_member', 'ForcedNatural', 'TrendTimePeriod', 'Lat', 'Lon'))
 
     # Assing values to variables
     ensemble_member[:] = simulation_index
+    ForcedNatural[:] = [0,1]
     TrendTimePeriod[:] = time_keys
     Lat[:] = np.arange(-88.75, 88.751, 2.5)
     Lon[:] = np.arange(1.25, 358.751, 2.5)
-    Ts_trends[:] = model_trends
+    Ts_trends[:] = ForcedNaturalArray
 
     ds.close()
